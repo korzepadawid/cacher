@@ -1,6 +1,6 @@
 package cacher
 
-// djb2Hasher uses one of the most popular hash "functions", called "dbj2".
+// djb2Hasher uses one of the most popular hash "function", called "dbj2".
 // http://www.cse.yorku.ca/~oz/hash.html
 type djb2Hasher struct{}
 
