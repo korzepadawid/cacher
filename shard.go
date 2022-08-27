@@ -16,3 +16,10 @@ type shard struct {
 	entries map[uint64]*shardItem
 	lock    sync.RWMutex
 }
+
+func newShard() *shard {
+	return &shard{
+		entries: make(map[uint64]*shardItem),
+		lock:    sync.RWMutex{},
+	}
+}
