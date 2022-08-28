@@ -6,45 +6,58 @@ import (
 )
 
 const (
-	ConfigDefaultMaxItemSize     uint64 = 1 << 10 // 1KB
-	ConfigDefaultNumberOfShards  uint32 = 10
-	ConfigNoExpiration                  = 0 * time.Second
-	ConfigDefaultCleanupInterval        = 2 * time.Minute
+	NoExpiration = time.Duration(-1)
+	NoCleanup    = time.Duration(-1)
+
+	configDefaultExpiration      = NoExpiration
+	configDefaultMaxItemSize     = 1 << 11
+	configDefaultNumberOfShards  = 10
+	configDefaultCleanupInterval = time.Minute * 2
 )
 
 var (
-	ErrInvalidNumberOfShards  = errors.New("number of shards must be greater than 1")
-	ErrInvalidCleanupInterval = errors.New("cleanup interval must be greater than 0")
+	ErrInvalidDefaultExpiration = errors.New("invalid default expiration")
+	ErrInvalidMaxItemSize       = errors.New("max item size must be positive")
+	ErrInvalidNumberOfShards    = errors.New("number of shards must be greater than 1")
+	ErrInvalidCleanupInterval   = errors.New("cleanup interval must be greater than 0")
+	ErrObjectTooLarge           = errors.New("given object is too large")
 )
 
 // Config customizes cache.
 type Config struct {
-	// DefaultExpiration sets default expiration for an object in your cache,
-	// by default cached objects don't expire.
-	// You can easily override this setting for a specific item.
-	// Look at todo: add method name...
+	// DefaultExpiration sets default expiration time for an item in a cache,
+	// you can easily override this setting whenever you put new item to the cache.
+	// Value must be greater than zero.
+	// Default value is NoExpiration.
 	DefaultExpiration time.Duration
 
-	// DefaultMaxItemSize is a size of a cached item, given in bytes,
-	// by default maximum size of an object is 1KB.
-	DefaultMaxItemSize uint64
+	// MaxItemSize sets maximum size of one item in a cache (IN BYTES),
+	// Value must be positive, by default it's 2048 bytes.
+	MaxItemSize int
 
 	// NumberOfShards n shards are going to divide your hashmap into n smaller hashmaps,
 	// it is helpful to reduce a number of locks on a single data structure.
 	// Default value is 10, it must be greater than 1.
-	NumberOfShards uint32
+	NumberOfShards int
 
 	// CleanupInterval is an interval between cache cleanups,
 	// it will remove expired items from memory,
 	// default cleanup interval is set to 2 minutes.
+	// You can disable cleanups with NoCleanup
 	CleanupInterval time.Duration
 }
 
 func (c *Config) valid() error {
+	if c.DefaultExpiration != NoExpiration && c.DefaultExpiration < 1 {
+		return ErrInvalidDefaultExpiration
+	}
+	if c.MaxItemSize < 1 {
+		return ErrInvalidMaxItemSize
+	}
 	if c.NumberOfShards < 2 {
 		return ErrInvalidNumberOfShards
 	}
-	if c.CleanupInterval < 1 {
+	if c.CleanupInterval != NoCleanup && c.CleanupInterval < 1 {
 		return ErrInvalidCleanupInterval
 	}
 	return nil
@@ -52,14 +65,16 @@ func (c *Config) valid() error {
 
 // setDefaults sets default values on empty fields
 func (c *Config) setDefaults() {
-	// we don't need to check default expiration, since default expiration is 0
-	if c.DefaultMaxItemSize == 0 {
-		c.DefaultMaxItemSize = ConfigDefaultMaxItemSize
+	if c.DefaultExpiration == 0 {
+		c.DefaultExpiration = configDefaultExpiration
+	}
+	if c.MaxItemSize == 0 {
+		c.MaxItemSize = configDefaultMaxItemSize
 	}
 	if c.NumberOfShards == 0 {
-		c.NumberOfShards = ConfigDefaultNumberOfShards
+		c.NumberOfShards = configDefaultNumberOfShards
 	}
 	if c.CleanupInterval == 0 {
-		c.CleanupInterval = ConfigDefaultCleanupInterval
+		c.CleanupInterval = configDefaultCleanupInterval
 	}
 }

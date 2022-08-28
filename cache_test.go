@@ -8,38 +8,60 @@ import (
 )
 
 func TestNewCache(t *testing.T) {
-	t.Run("should create a cache when default settings", func(t *testing.T) {
+	t.Run("should set default values and create a cache when empty config", func(t *testing.T) {
 		// given
 		cfg := Config{}
 		// when
 		c, err := New(&cfg)
 		// then
 		assert.NoError(t, err)
-		assert.Equal(t, int(ConfigDefaultNumberOfShards), len(c.shards))
-		assert.Equal(t, ConfigDefaultCleanupInterval, c.config.CleanupInterval)
-		assert.Equal(t, ConfigDefaultMaxItemSize, c.config.DefaultMaxItemSize)
-		assert.Equal(t, ConfigNoExpiration, c.config.DefaultExpiration)
+		assert.Equal(t, configDefaultExpiration, c.config.DefaultExpiration)
+		assert.Equal(t, configDefaultMaxItemSize, c.config.MaxItemSize)
+		assert.Equal(t, configDefaultNumberOfShards, len(c.shards))
+		assert.Equal(t, configDefaultCleanupInterval, c.config.CleanupInterval)
 	})
 
-	t.Run("should create a cache when valid custom settings", func(t *testing.T) {
+	t.Run("should create a cache when custom values in config", func(t *testing.T) {
 		// given
 		cfg := Config{
-			DefaultExpiration:  time.Hour,
-			DefaultMaxItemSize: 1 << 12,
-			NumberOfShards:     20,
-			CleanupInterval:    time.Minute * 15,
+			DefaultExpiration: time.Hour,
+			MaxItemSize:       1 << 15,
+			NumberOfShards:    15,
+			CleanupInterval:   time.Minute * 15,
 		}
 		// when
 		c, err := New(&cfg)
 		// then
 		assert.NoError(t, err)
-		assert.Equal(t, 20, len(c.shards))
-		assert.Equal(t, time.Minute*15, c.config.CleanupInterval)
-		assert.Equal(t, uint64(1<<12), c.config.DefaultMaxItemSize)
 		assert.Equal(t, time.Hour, c.config.DefaultExpiration)
+		assert.Equal(t, 1<<15, c.config.MaxItemSize)
+		assert.Equal(t, 15, len(c.shards))
+		assert.Equal(t, time.Minute*15, c.config.CleanupInterval)
 	})
 
-	t.Run("should return an error when not enough shards", func(t *testing.T) {
+	t.Run("should return an error when invalid expiration date", func(t *testing.T) {
+		// given
+		cfg := Config{
+			DefaultExpiration: -time.Millisecond * 500,
+		}
+		// when
+		_, err := New(&cfg)
+		// then
+		assert.ErrorIs(t, err, ErrInvalidDefaultExpiration)
+	})
+
+	t.Run("should return an error when invalid max item size", func(t *testing.T) {
+		// given
+		cfg := Config{
+			MaxItemSize: -1,
+		}
+		// when
+		_, err := New(&cfg)
+		// then
+		assert.ErrorIs(t, err, ErrInvalidMaxItemSize)
+	})
+
+	t.Run("should return an error when invalid shards count", func(t *testing.T) {
 		// given
 		cfg := Config{
 			NumberOfShards: 1,
@@ -50,10 +72,10 @@ func TestNewCache(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidNumberOfShards)
 	})
 
-	t.Run("should return an error when not enough shards", func(t *testing.T) {
+	t.Run("should return an error when invalid cleanup interval", func(t *testing.T) {
 		// given
 		cfg := Config{
-			CleanupInterval: -1,
+			CleanupInterval: -time.Minute,
 		}
 		// when
 		_, err := New(&cfg)

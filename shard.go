@@ -2,13 +2,12 @@ package cacher
 
 import (
 	"sync"
-	"time"
 )
 
 // shardItem
 type shardItem struct {
-	content    []byte
-	expiration time.Time
+	content  []byte
+	duration int64
 }
 
 // shard
@@ -22,4 +21,10 @@ func newShard() *shard {
 		entries: make(map[uint64]*shardItem),
 		lock:    sync.RWMutex{},
 	}
+}
+
+func (sh *shard) put(hash uint64, item *shardItem) {
+	sh.lock.Lock()
+	sh.entries[hash] = item
+	sh.lock.Unlock()
 }

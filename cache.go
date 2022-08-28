@@ -22,9 +22,9 @@ func New(config *Config) (*cache, error) {
 }
 
 // initShards initializes a slice that contains n shards.
-func initShards(n uint32) []*shard {
+func initShards(n int) []*shard {
 	s := make([]*shard, n)
-	for i := uint32(0); i < n; i++ {
+	for i := 0; i < n; i++ {
 		s[i] = newShard()
 	}
 	return s
