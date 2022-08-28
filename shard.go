@@ -61,3 +61,15 @@ func (sh *shard) get(hash uint64) (interface{}, error) {
 	sh.lock.RUnlock()
 	return entry.value, nil
 }
+
+func (sh *shard) delete(hash uint64) {
+	sh.lock.Lock()
+	delete(sh.entries, hash)
+	sh.lock.Unlock()
+}
+
+func (sh *shard) flush() {
+	sh.lock.Lock()
+	sh.entries = make(map[uint64]*shardItem)
+	sh.lock.Unlock()
+}
