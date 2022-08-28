@@ -7,9 +7,9 @@ import (
 
 const (
 	ConfigDefaultMaxItemSize     uint64 = 1 << 10 // 1KB
-	ConfigNoExpiration           uint64 = 0
 	ConfigDefaultNumberOfShards  uint32 = 10
-	ConfigDefaultCleanupInterval        = time.Minute * 2
+	ConfigNoExpiration                  = 0 * time.Second
+	ConfigDefaultCleanupInterval        = 2 * time.Minute
 )
 
 var (
@@ -23,7 +23,7 @@ type Config struct {
 	// by default cached objects don't expire.
 	// You can easily override this setting for a specific item.
 	// Look at todo: add method name...
-	DefaultExpiration uint64
+	DefaultExpiration time.Duration
 
 	// DefaultMaxItemSize is a size of a cached item, given in bytes,
 	// by default maximum size of an object is 1KB.

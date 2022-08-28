@@ -10,10 +10,10 @@ type cache struct {
 // efficient in-memory key-value store (cache).
 // It validates a given config, before initialization.
 func New(config *Config) (*cache, error) {
+	config.setDefaults()
 	if err := config.valid(); err != nil {
 		return nil, err
 	}
-	config.setDefaults()
 	return &cache{
 		shards: initShards(config.NumberOfShards),
 		config: config,
