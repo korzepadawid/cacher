@@ -1,5 +1,7 @@
 package cacher
 
+import "time"
+
 type cache struct {
 	config *Config
 	shards []*shard
@@ -39,4 +41,21 @@ func (c *cache) getShardIdx(sum uint64) int {
 func (c *cache) getShard(sum uint64) *shard {
 	idx := c.getShardIdx(sum)
 	return c.shards[idx]
+}
+
+func (c *cache) Put(key string, value interface{}) {
+	c.PutWithExpiration(key, value, c.config.DefaultExpiration)
+}
+
+func (c *cache) PutWithExpiration(key string, value interface{}, expiration time.Duration) {
+	item := shardItem{
+		value:      value,
+		expiration: time.Now().Add(expiration).Unix(),
+	}
+	if expiration == NoExpiration {
+		item.expiration = noExpInt64
+	}
+	hash := c.hash.sumUint64(key)
+	sh := c.getShard(hash)
+	sh.put(hash, &item)
 }
