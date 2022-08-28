@@ -2,6 +2,7 @@ package cacher
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
@@ -58,5 +59,33 @@ func TestNewCache(t *testing.T) {
 		_, err := New(&cfg)
 		// then
 		assert.ErrorIs(t, err, ErrInvalidCleanupInterval)
+	})
+}
+
+func TestShardIdx(t *testing.T) {
+	t.Run("should return 0 when divisible by the slice length", func(t *testing.T) {
+		// given
+		cfg := Config{
+			NumberOfShards: 15,
+		}
+		c, err := New(&cfg)
+		require.NoError(t, err)
+		// when
+		idx := c.getShardIdx(uint64(45))
+		// then
+		assert.Equal(t, 0, idx)
+	})
+
+	t.Run("should return valid result when not divisible by the slice length", func(t *testing.T) {
+		// given
+		cfg := Config{
+			NumberOfShards: 15,
+		}
+		c, err := New(&cfg)
+		require.NoError(t, err)
+		// when
+		idx := c.getShardIdx(uint64(16))
+		// then
+		assert.Equal(t, 1, idx)
 	})
 }
