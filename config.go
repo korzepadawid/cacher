@@ -11,7 +11,7 @@ const (
 
 	configDefaultExpiration      = NoExpiration
 	configDefaultNumberOfShards  = 10
-	configDefaultCleanupInterval = time.Minute * 2
+	configDefaultCleanupInterval = NoCleanup
 )
 
 var (

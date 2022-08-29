@@ -19,11 +19,13 @@ func New(config *Config) (*cache, error) {
 	if err := config.valid(); err != nil {
 		return nil, err
 	}
-	return &cache{
+	c := cache{
 		shards: initShards(config.NumberOfShards),
 		config: config,
 		hash:   newDjb2Hasher(),
-	}, nil
+	}
+	c.runCleaner()
+	return &c, nil
 }
 
 // initShards initializes a slice that contains n shards.
@@ -99,4 +101,18 @@ func (c *cache) deleteExpired() {
 		}()
 	}
 	wg.Wait()
+}
+
+func (c *cache) runCleaner() {
+	if c.config.CleanupInterval != NoCleanup {
+		ticker := time.NewTicker(c.config.CleanupInterval)
+		go func() {
+			for {
+				select {
+				case <-ticker.C:
+					c.deleteExpired()
+				}
+			}
+		}()
+	}
 }
