@@ -59,3 +59,9 @@ func (c *cache) PutWithExpiration(key string, value interface{}, expiration time
 	sh := c.getShard(hash)
 	sh.put(hash, &item)
 }
+
+func (c *cache) Get(key string) (interface{}, error) {
+	hash := c.hash.sumUint64(key)
+	sh := c.getShard(hash)
+	return sh.get(hash)
+}

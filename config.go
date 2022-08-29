@@ -23,7 +23,7 @@ var (
 // Config customizes cache.
 type Config struct {
 	// DefaultExpiration sets default expiration time for an item in a cache,
-	// you can easily override this setting whenever you put new item to the cache.
+	// you can easily override this setting whenever you put new item to the cache (Look at: PutWithExpiration()).
 	// Value must be greater than zero.
 	// Default value is NoExpiration.
 	DefaultExpiration time.Duration

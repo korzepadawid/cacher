@@ -97,3 +97,39 @@ func TestShardIdx(t *testing.T) {
 		assert.Equal(t, 1, idx)
 	})
 }
+
+func TestCachePut(t *testing.T) {
+	t.Run("should put item in cache", func(t *testing.T) {
+		// given
+		c, err := New(&Config{
+			NumberOfShards:    10,
+			DefaultExpiration: NoExpiration,
+		})
+		require.NoError(t, err)
+		// when
+		c.Put("key", "jsdfgkdfhg")
+		// then
+		val, err := c.Get("key")
+		s, ok := val.(string)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, s, "jsdfgkdfhg")
+	})
+
+	t.Run("should put item with expiration", func(t *testing.T) {
+		// given
+		c, err := New(&Config{
+			NumberOfShards: 10,
+		})
+		c.config.DefaultExpiration = -time.Minute
+		require.NoError(t, err)
+		// when
+		c.PutWithExpiration("key", "jsdfgkdfhg", time.Hour)
+		// then
+		val, err := c.Get("key")
+		s, ok := val.(string)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, s, "jsdfgkdfhg")
+	})
+}
