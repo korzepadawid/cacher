@@ -1,6 +1,9 @@
 package cacher
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 type cache struct {
 	config *Config
@@ -73,7 +76,14 @@ func (c *cache) Delete(key string) {
 }
 
 func (c *cache) Flush() {
+	var wg sync.WaitGroup
 	for _, sh := range c.shards {
-		sh.flush()
+		wg.Add(1)
+		sh := sh
+		go func() {
+			defer wg.Done()
+			sh.flush()
+		}()
 	}
+	wg.Wait()
 }
