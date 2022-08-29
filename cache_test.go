@@ -1,6 +1,7 @@
 package cacher
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -8,38 +9,46 @@ import (
 )
 
 func TestNewCache(t *testing.T) {
-	t.Run("should create a cache when default settings", func(t *testing.T) {
+	t.Run("should set default values and create a cache when empty config", func(t *testing.T) {
 		// given
 		cfg := Config{}
 		// when
 		c, err := New(&cfg)
 		// then
 		assert.NoError(t, err)
-		assert.Equal(t, int(ConfigDefaultNumberOfShards), len(c.shards))
-		assert.Equal(t, ConfigDefaultCleanupInterval, c.config.CleanupInterval)
-		assert.Equal(t, ConfigDefaultMaxItemSize, c.config.DefaultMaxItemSize)
-		assert.Equal(t, ConfigNoExpiration, c.config.DefaultExpiration)
+		assert.Equal(t, configDefaultExpiration, c.config.DefaultExpiration)
+		assert.Equal(t, configDefaultNumberOfShards, len(c.shards))
+		assert.Equal(t, configDefaultCleanupInterval, c.config.CleanupInterval)
 	})
 
-	t.Run("should create a cache when valid custom settings", func(t *testing.T) {
+	t.Run("should create a cache when custom values in config", func(t *testing.T) {
 		// given
 		cfg := Config{
-			DefaultExpiration:  time.Hour,
-			DefaultMaxItemSize: 1 << 12,
-			NumberOfShards:     20,
-			CleanupInterval:    time.Minute * 15,
+			DefaultExpiration: time.Hour,
+			NumberOfShards:    15,
+			CleanupInterval:   time.Minute * 15,
 		}
 		// when
 		c, err := New(&cfg)
 		// then
 		assert.NoError(t, err)
-		assert.Equal(t, 20, len(c.shards))
-		assert.Equal(t, time.Minute*15, c.config.CleanupInterval)
-		assert.Equal(t, uint64(1<<12), c.config.DefaultMaxItemSize)
 		assert.Equal(t, time.Hour, c.config.DefaultExpiration)
+		assert.Equal(t, 15, len(c.shards))
+		assert.Equal(t, time.Minute*15, c.config.CleanupInterval)
 	})
 
-	t.Run("should return an error when not enough shards", func(t *testing.T) {
+	t.Run("should return an error when invalid expiration date", func(t *testing.T) {
+		// given
+		cfg := Config{
+			DefaultExpiration: -time.Millisecond * 500,
+		}
+		// when
+		_, err := New(&cfg)
+		// then
+		assert.ErrorIs(t, err, ErrInvalidDefaultExpiration)
+	})
+
+	t.Run("should return an error when invalid shards count", func(t *testing.T) {
 		// given
 		cfg := Config{
 			NumberOfShards: 1,
@@ -50,10 +59,10 @@ func TestNewCache(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidNumberOfShards)
 	})
 
-	t.Run("should return an error when not enough shards", func(t *testing.T) {
+	t.Run("should return an error when invalid cleanup interval", func(t *testing.T) {
 		// given
 		cfg := Config{
-			CleanupInterval: -1,
+			CleanupInterval: -time.Minute,
 		}
 		// when
 		_, err := New(&cfg)
@@ -87,5 +96,123 @@ func TestShardIdx(t *testing.T) {
 		idx := c.getShardIdx(uint64(16))
 		// then
 		assert.Equal(t, 1, idx)
+	})
+}
+
+func TestCachePut(t *testing.T) {
+	t.Run("should put item in cache", func(t *testing.T) {
+		// given
+		c, err := New(&Config{
+			NumberOfShards:    10,
+			DefaultExpiration: NoExpiration,
+		})
+		require.NoError(t, err)
+		// when
+		c.Put("key", "jsdfgkdfhg")
+		// then
+		val, err := c.Get("key")
+		s, ok := val.(string)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, s, "jsdfgkdfhg")
+	})
+
+	t.Run("should put item in cache and replace the old one", func(t *testing.T) {
+		// given
+		c, err := New(&Config{
+			NumberOfShards:    10,
+			DefaultExpiration: NoExpiration,
+		})
+		require.NoError(t, err)
+		// when
+		c.Put("key", "jsdfgkdfhg")
+		c.Put("key", "newitem")
+		// then
+		val, err := c.Get("key")
+		s, ok := val.(string)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, s, "newitem")
+	})
+
+	t.Run("should put item with expiration", func(t *testing.T) {
+		// given
+		c, err := New(&Config{
+			NumberOfShards: 10,
+		})
+		c.config.DefaultExpiration = -time.Minute
+		require.NoError(t, err)
+		// when
+		c.PutWithExpiration("key", "jsdfgkdfhg", time.Hour)
+		// then
+		val, err := c.Get("key")
+		s, ok := val.(string)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, s, "jsdfgkdfhg")
+	})
+}
+
+func TestCacheGet(t *testing.T) {
+	t.Run("should return an error when item not found in cache", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		// when
+		_, err = c.Get("key")
+		// then
+		assert.ErrorIs(t, err, ErrItemNotFound)
+	})
+
+	t.Run("should return an error when item expired in cache", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		c.PutWithExpiration("key", "val", -time.Second)
+		require.NoError(t, err)
+		// when
+		_, err = c.Get("key")
+		// then
+		assert.ErrorIs(t, err, ErrItemNotFound)
+	})
+}
+
+func TestCacheDelete(t *testing.T) {
+	t.Run("should delete when item exists", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		c.Put("key", "val")
+		// when
+		c.Delete("key")
+		// then
+		_, err = c.Get("key")
+		assert.ErrorIs(t, err, ErrItemNotFound)
+	})
+
+	t.Run("should no-op when item doesn't exist", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			// given
+			c, err := New(&Config{})
+			require.NoError(t, err)
+			// when
+			c.Delete("key")
+		})
+	})
+}
+
+func TestCacheFlush(t *testing.T) {
+	t.Run("should flush all shards when they are not empty", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		for i := 0; i < 50; i++ {
+			c.Put(fmt.Sprintf("key-%d", i), i)
+		}
+		// when
+		c.Flush()
+		// then
+		for _, sh := range c.shards {
+			assert.Empty(t, sh.entries)
+		}
 	})
 }

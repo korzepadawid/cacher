@@ -1,5 +1,7 @@
 package cacher
 
+import "time"
+
 type cache struct {
 	config *Config
 	shards []*shard
@@ -22,9 +24,9 @@ func New(config *Config) (*cache, error) {
 }
 
 // initShards initializes a slice that contains n shards.
-func initShards(n uint32) []*shard {
+func initShards(n int) []*shard {
 	s := make([]*shard, n)
-	for i := uint32(0); i < n; i++ {
+	for i := 0; i < n; i++ {
 		s[i] = newShard()
 	}
 	return s
@@ -39,4 +41,39 @@ func (c *cache) getShardIdx(sum uint64) int {
 func (c *cache) getShard(sum uint64) *shard {
 	idx := c.getShardIdx(sum)
 	return c.shards[idx]
+}
+
+func (c *cache) Put(key string, value interface{}) {
+	c.PutWithExpiration(key, value, c.config.DefaultExpiration)
+}
+
+func (c *cache) PutWithExpiration(key string, value interface{}, expiration time.Duration) {
+	item := shardItem{
+		value:      value,
+		expiration: time.Now().Add(expiration).Unix(),
+	}
+	if expiration == NoExpiration {
+		item.expiration = noExpInt64
+	}
+	hash := c.hash.sumUint64(key)
+	sh := c.getShard(hash)
+	sh.put(hash, &item)
+}
+
+func (c *cache) Get(key string) (interface{}, error) {
+	hash := c.hash.sumUint64(key)
+	sh := c.getShard(hash)
+	return sh.get(hash)
+}
+
+func (c *cache) Delete(key string) {
+	hash := c.hash.sumUint64(key)
+	sh := c.getShard(hash)
+	sh.delete(hash)
+}
+
+func (c *cache) Flush() {
+	for _, sh := range c.shards {
+		sh.flush()
+	}
 }
