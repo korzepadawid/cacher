@@ -73,3 +73,13 @@ func (sh *shard) flush() {
 	sh.entries = make(map[uint64]*shardItem)
 	sh.lock.Unlock()
 }
+
+func (sh *shard) removeAllExpired() {
+	for idx, item := range sh.entries {
+		sh.lock.Lock()
+		if item.isExpired() {
+			delete(sh.entries, idx)
+		}
+		sh.lock.Unlock()
+	}
+}
