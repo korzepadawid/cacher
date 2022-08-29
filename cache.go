@@ -1,6 +1,7 @@
 package cacher
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -112,6 +113,7 @@ func (c *cache) runCleaner() {
 				case <-ticker.C:
 					c.deleteExpired()
 				}
+				log.Println("Finished removing expired elements from shards")
 			}
 		}()
 	}

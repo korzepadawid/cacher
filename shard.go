@@ -75,11 +75,15 @@ func (sh *shard) flush() {
 }
 
 func (sh *shard) removeAllExpired() {
+	sh.lock.RLock()
 	for idx, item := range sh.entries {
+		sh.lock.RUnlock()
 		sh.lock.Lock()
 		if item.isExpired() {
 			delete(sh.entries, idx)
 		}
 		sh.lock.Unlock()
+		sh.lock.RLock()
 	}
+	sh.lock.RUnlock()
 }
