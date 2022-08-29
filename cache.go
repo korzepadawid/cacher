@@ -87,3 +87,16 @@ func (c *cache) Flush() {
 	}
 	wg.Wait()
 }
+
+func (c *cache) deleteExpired() {
+	var wg sync.WaitGroup
+	for _, sh := range c.shards {
+		wg.Add(1)
+		sh := sh
+		go func() {
+			defer wg.Done()
+			sh.removeAllExpired()
+		}()
+	}
+	wg.Wait()
+}

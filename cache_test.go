@@ -216,3 +216,25 @@ func TestCacheFlush(t *testing.T) {
 		}
 	})
 }
+
+func TestCacheRemoveExpired(t *testing.T) {
+	t.Run("should remove all expired items", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		for i := 0; i < 100; i++ {
+			c.PutWithExpiration(fmt.Sprintf("key-%d", i), i, -time.Minute)
+		}
+		for i := 0; i < 5; i++ {
+			c.PutWithExpiration(fmt.Sprintf("key-%d", i+200), i, time.Hour)
+		}
+		// when
+		c.deleteExpired()
+		// then
+		leftInCache := 0
+		for _, sh := range c.shards {
+			leftInCache += len(sh.entries)
+		}
+		assert.Equal(t, 5, leftInCache)
+	})
+}

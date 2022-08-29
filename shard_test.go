@@ -123,3 +123,22 @@ func TestFlush(t *testing.T) {
 		assert.Equal(t, len(sh.entries), 0)
 	})
 }
+
+func TestRemoveAllExpired(t *testing.T) {
+	t.Run("should remove all expired elements and omit non expiring item", func(t *testing.T) {
+		// given
+		sh := newShard()
+		for i := 0; i < 200; i++ {
+			sh.entries[uint64(i)] = &shardItem{value: i, expiration: time.Now().Add(-time.Second).Unix()}
+		}
+		sh.entries[200] = &shardItem{value: 200, expiration: noExpInt64}
+		// when
+		sh.removeAllExpired()
+		// then
+		it := sh.entries[200]
+		val, ok := it.value.(int)
+		assert.Equal(t, 1, len(sh.entries))
+		assert.True(t, ok)
+		assert.Equal(t, 200, val)
+	})
+}
