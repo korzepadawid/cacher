@@ -1,6 +1,7 @@
 package cacher
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -116,6 +117,24 @@ func TestCachePut(t *testing.T) {
 		assert.Equal(t, s, "jsdfgkdfhg")
 	})
 
+	t.Run("should put item in cache and replace the old one", func(t *testing.T) {
+		// given
+		c, err := New(&Config{
+			NumberOfShards:    10,
+			DefaultExpiration: NoExpiration,
+		})
+		require.NoError(t, err)
+		// when
+		c.Put("key", "jsdfgkdfhg")
+		c.Put("key", "newitem")
+		// then
+		val, err := c.Get("key")
+		s, ok := val.(string)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Equal(t, s, "newitem")
+	})
+
 	t.Run("should put item with expiration", func(t *testing.T) {
 		// given
 		c, err := New(&Config{
@@ -131,5 +150,69 @@ func TestCachePut(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, ok)
 		assert.Equal(t, s, "jsdfgkdfhg")
+	})
+}
+
+func TestCacheGet(t *testing.T) {
+	t.Run("should return an error when item not found in cache", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		// when
+		_, err = c.Get("key")
+		// then
+		assert.ErrorIs(t, err, ErrItemNotFound)
+	})
+
+	t.Run("should return an error when item expired in cache", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		c.PutWithExpiration("key", "val", -time.Second)
+		require.NoError(t, err)
+		// when
+		_, err = c.Get("key")
+		// then
+		assert.ErrorIs(t, err, ErrItemNotFound)
+	})
+}
+
+func TestCacheDelete(t *testing.T) {
+	t.Run("should delete when item exists", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		c.Put("key", "val")
+		// when
+		c.Delete("key")
+		// then
+		_, err = c.Get("key")
+		assert.ErrorIs(t, err, ErrItemNotFound)
+	})
+
+	t.Run("should no-op when item doesn't exist", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			// given
+			c, err := New(&Config{})
+			require.NoError(t, err)
+			// when
+			c.Delete("key")
+		})
+	})
+}
+
+func TestCacheFlush(t *testing.T) {
+	t.Run("should flush all shards when they are not empty", func(t *testing.T) {
+		// given
+		c, err := New(&Config{})
+		require.NoError(t, err)
+		for i := 0; i < 50; i++ {
+			c.Put(fmt.Sprintf("key-%d", i), i)
+		}
+		// when
+		c.Flush()
+		// then
+		for _, sh := range c.shards {
+			assert.Empty(t, sh.entries)
+		}
 	})
 }

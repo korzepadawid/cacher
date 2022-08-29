@@ -65,3 +65,15 @@ func (c *cache) Get(key string) (interface{}, error) {
 	sh := c.getShard(hash)
 	return sh.get(hash)
 }
+
+func (c *cache) Delete(key string) {
+	hash := c.hash.sumUint64(key)
+	sh := c.getShard(hash)
+	sh.delete(hash)
+}
+
+func (c *cache) Flush() {
+	for _, sh := range c.shards {
+		sh.flush()
+	}
+}
