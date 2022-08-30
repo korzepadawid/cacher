@@ -53,3 +53,9 @@ func main() {
 	fmt.Println(v) // &{0.1 0.2}
 }
 ```
+## How does it work?
+
+### Hashing
+The library uses the [dbj2 algorithm](http://www.cse.yorku.ca/~oz/hash.html) for generating string hashes.
+
+### Sharding
