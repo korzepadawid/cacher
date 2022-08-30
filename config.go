@@ -35,8 +35,7 @@ type Config struct {
 
 	// CleanupInterval is an interval between cache cleanups,
 	// it will remove expired items from memory,
-	// default cleanup interval is set to 2 minutes.
-	// You can disable cleanups with NoCleanup
+	// default cleanup interval is set to NoCleanup
 	CleanupInterval time.Duration
 }
 
