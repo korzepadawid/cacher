@@ -1,4 +1,5 @@
 # cacher
+A sharded, concurrent key-value store (cache) library for Go, suitable for single-machine applications.
 
 ## Installation
 ```shell
@@ -7,29 +8,48 @@ $ go get github.com/korzepadawid/cacher
 
 ## Usage
 ```go
-import "github.com/korzepadawid/cacher"
+package main
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/korzepadawid/cacher"
+)
 
 type vertex struct {
-    x, y float64
+	x, y float64
 }
 
-c, err := cacher.New(&cacher.Config{
-    DefaultExpiration: time.Hour,
-    NumberOfShards:    20,
-    CleanupInterval:   time.Second * 5,
-})
+func main() {
+	c, err := cacher.New(&cacher.Config{
+		// You can disable this feature, just use cacher.NoExpiration instead.
+		// It's possible to override this setting whenever you want with PutWithExpiration().
+		DefaultExpiration: time.Hour,
+		// I used the concept of “sharding” and split a large hash table
+		// into multiple partitions to localise the effects of read/write locks.
+		// NumberOfShards must be greater or equal than two.
+		NumberOfShards: 20,
+		// It's possible to disable this feature, use cacher.NoCleanup.
+		CleanupInterval: time.Second * 5,
+	})
 
-if err != nil {
-    // handle me
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// It's not mandatory, but it's recommended.
+	// Store pointers, and performance will be improved.
+	c.Put("p1", &vertex{x: 0.1, y: 0.2})
+
+	item, err := c.Get("p1")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	v := item.(*vertex)
+	fmt.Println(v) // &{0.1 0.2}
 }
-
-c.Put("p1", &vertex{x: 0.1, y: 0.2})
-v, err := c.Get("p1")
-
-if err != nil {
-    // handle me
-}
-
-p := v.(*vertex)
-fmt.Println(p) // &{0.1 0.2}
 ```
