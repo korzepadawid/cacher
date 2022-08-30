@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewCache(t *testing.T) {
-	t.Run("should set default values and create a cache when empty config", func(t *testing.T) {
+	t.Run("should set default values and create a Cache when empty config", func(t *testing.T) {
 		// given
 		cfg := Config{}
 		// when
@@ -21,7 +21,7 @@ func TestNewCache(t *testing.T) {
 		assert.Equal(t, configDefaultCleanupInterval, c.config.CleanupInterval)
 	})
 
-	t.Run("should create a cache when custom values in config", func(t *testing.T) {
+	t.Run("should create a Cache when custom values in config", func(t *testing.T) {
 		// given
 		cfg := Config{
 			DefaultExpiration: time.Hour,
@@ -100,7 +100,7 @@ func TestShardIdx(t *testing.T) {
 }
 
 func TestCachePut(t *testing.T) {
-	t.Run("should put item in cache", func(t *testing.T) {
+	t.Run("should put item in Cache", func(t *testing.T) {
 		// given
 		c, err := New(&Config{
 			NumberOfShards:    10,
@@ -117,7 +117,7 @@ func TestCachePut(t *testing.T) {
 		assert.Equal(t, s, "jsdfgkdfhg")
 	})
 
-	t.Run("should put item in cache and replace the old one", func(t *testing.T) {
+	t.Run("should put item in Cache and replace the old one", func(t *testing.T) {
 		// given
 		c, err := New(&Config{
 			NumberOfShards:    10,
@@ -154,7 +154,7 @@ func TestCachePut(t *testing.T) {
 }
 
 func TestCacheGet(t *testing.T) {
-	t.Run("should return an error when item not found in cache", func(t *testing.T) {
+	t.Run("should return an error when item not found in Cache", func(t *testing.T) {
 		// given
 		c, err := New(&Config{})
 		require.NoError(t, err)
@@ -164,7 +164,7 @@ func TestCacheGet(t *testing.T) {
 		assert.ErrorIs(t, err, ErrItemNotFound)
 	})
 
-	t.Run("should return an error when item expired in cache", func(t *testing.T) {
+	t.Run("should return an error when item expired in Cache", func(t *testing.T) {
 		// given
 		c, err := New(&Config{})
 		c.PutWithExpiration("key", "val", -time.Second)

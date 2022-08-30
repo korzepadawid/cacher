@@ -6,22 +6,22 @@ import (
 	"time"
 )
 
-type cache struct {
+type Cache struct {
 	config *Config
 	shards []*shard
 	hash   hasher
 }
 
 // New initializes thread-safe, sharded,
-// efficient, in-memory key-value store (cache).
+// efficient, in-memory key-value store (Cache).
 // It validates a given config, before initialization.
 // Returns an error, if any.
-func New(config *Config) (*cache, error) {
+func New(config *Config) (*Cache, error) {
 	config.setDefaults()
 	if err := config.valid(); err != nil {
 		return nil, err
 	}
-	c := cache{
+	c := Cache{
 		shards: initShards(config.NumberOfShards),
 		config: config,
 		hash:   newDjb2Hasher(),
@@ -42,24 +42,24 @@ func initShards(n int) []*shard {
 }
 
 // getShardIdx calculates an index of the shard
-func (c *cache) getShardIdx(sum uint64) int {
+func (c *Cache) getShardIdx(sum uint64) int {
 	return int(sum % uint64(len(c.shards)))
 }
 
 // getShard returns a *shard for a given sum(hash)
-func (c *cache) getShard(sum uint64) *shard {
+func (c *Cache) getShard(sum uint64) *shard {
 	idx := c.getShardIdx(sum)
 	return c.shards[idx]
 }
 
-// Put puts an item into a cache with default expiration time.
+// Put puts an item into a Cache with default expiration time.
 // If you want to override expiration time, look at PutWithExpiration
-func (c *cache) Put(key string, value interface{}) {
+func (c *Cache) Put(key string, value interface{}) {
 	c.PutWithExpiration(key, value, c.config.DefaultExpiration)
 }
 
 // PutWithExpiration works like Put, but you can easily override expiration time.
-func (c *cache) PutWithExpiration(key string, value interface{}, expiration time.Duration) {
+func (c *Cache) PutWithExpiration(key string, value interface{}, expiration time.Duration) {
 	item := shardItem{
 		value:      value,
 		expiration: time.Now().Add(expiration).Unix(),
@@ -73,7 +73,7 @@ func (c *cache) PutWithExpiration(key string, value interface{}, expiration time
 }
 
 // Get gets an item with the given key, otherwise returns ErrItemNotFound.
-func (c *cache) Get(key string) (interface{}, error) {
+func (c *Cache) Get(key string) (interface{}, error) {
 	hash := c.hash.sumUint64(key)
 	sh := c.getShard(hash)
 	return sh.get(hash)
@@ -81,14 +81,14 @@ func (c *cache) Get(key string) (interface{}, error) {
 
 // Delete deletes an item from the k-v store.
 // If there's no such item, its no-op.
-func (c *cache) Delete(key string) {
+func (c *Cache) Delete(key string) {
 	hash := c.hash.sumUint64(key)
 	sh := c.getShard(hash)
 	sh.delete(hash)
 }
 
 // Flush cleans all shards immediately.
-func (c *cache) Flush() {
+func (c *Cache) Flush() {
 	var wg sync.WaitGroup
 	for _, sh := range c.shards {
 		wg.Add(1)
@@ -102,8 +102,8 @@ func (c *cache) Flush() {
 }
 
 // deleteExpired removes all expired items
-// from the cache.
-func (c *cache) deleteExpired() {
+// from the Cache.
+func (c *Cache) deleteExpired() {
 	var wg sync.WaitGroup
 	for _, sh := range c.shards {
 		wg.Add(1)
@@ -117,7 +117,7 @@ func (c *cache) deleteExpired() {
 }
 
 // runCleaner triggers deleteExpired every as configured.
-func (c *cache) runCleaner() {
+func (c *Cache) runCleaner() {
 	ticker := time.NewTicker(c.config.CleanupInterval)
 	go func() {
 		for {

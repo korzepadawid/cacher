@@ -73,7 +73,7 @@ func (sh *shard) get(hash uint64) (interface{}, error) {
 	return entry.value, nil
 }
 
-// delete deletes an item from the cache,
+// delete deletes an item from the Cache,
 // if there's no such item it's no-op.
 func (sh *shard) delete(hash uint64) {
 	sh.lock.Lock()
