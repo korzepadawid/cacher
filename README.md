@@ -61,7 +61,7 @@ The library uses the [dbj2 algorithm](http://www.cse.yorku.ca/~oz/hash.html) for
 ### Sharding
 
 Cacher uses the concept of "sharding" and splits a large hash table into multiple partitions to localise the effects of 
-"read/write" locks. With many read and write requests we don't need to block the whole data structure unnecessarily.
+"read/write" locks. With many read and write requests there's no need to block the whole data structure unnecessarily.
 
 ### Choosing a shard
 `shard_id = item_hash % total_number_of_shards`
