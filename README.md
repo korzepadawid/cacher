@@ -1,3 +1,4 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/korzepadawid/cacher.svg)](https://pkg.go.dev/github.com/korzepadawid/cacher)
 # cacher
 A sharded, concurrent key-value store (cache) library for Go, suitable for single-machine applications.
 
