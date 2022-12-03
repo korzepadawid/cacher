@@ -32,7 +32,7 @@ func main() {
 		DefaultExpiration: time.Hour,
 		// I used the concept of “sharding” and split a large hash table
 		// into multiple partitions to localise the effects of read/write locks.
-		// NumberOfShards must be greater or equal than two.
+		// NumberOfShards must be greater than or equal two.
 		NumberOfShards: 20,
 		// It's possible to disable this feature, use cacher.NoCleanup.
 		CleanupInterval: time.Second * 5,
